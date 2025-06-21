@@ -97,14 +97,14 @@ Deploy a secure, offline-capable, and extensible AI development environment with
 ---
 
 ## Step 2: Set Up Ubuntu 22.04 in WSL2
-A
-- ** `:**
+
+- ** add the current user to the sudoers group and disable password prompts for sudo operation:**
   ```bash
   sudo usermod -aG sudo $USER
   echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/$USER
   sudo chmod 0440 /etc/sudoers.d/$USER
   ```
-B
+
 - **Launch Ubuntu from Start Menu**
 - **Update Linux system:**
   ```bash
