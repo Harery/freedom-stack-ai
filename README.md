@@ -166,7 +166,7 @@ Deploy a secure, offline-capable, and extensible AI development environment with
    sudo apt install ufw -y
    sudo ufw enable
    sudo ufw allow OpenSSH
-   sudo ufw allow 9898   # AnythingLLM
+   sudo ufw allow 3001   # AnythingLLM
    sudo ufw allow 11434  # Ollama
    sudo ufw allow 9000   # (If using SMB/9P file sharing)
    sudo ufw status
@@ -208,29 +208,61 @@ Deploy a secure, offline-capable, and extensible AI development environment with
    ollama run mistral
    ```
 
-2. Try other models:
+2. Try other models (with system requirements):
    ```bash
+   # Mistral 7B - Disk: 4.1GB | RAM: 8GB | CPU: 4+ cores | GPU: Optional (NVIDIA/AMD)
+   ollama run mistral
+   
+   # Phi-3 Mini - Disk: 2.3GB | RAM: 4GB | CPU: 2+ cores | GPU: Optional
    ollama run phi
+   
+   # Mixtral 8x7B - Disk: 26GB | RAM: 48GB | CPU: 8+ cores | GPU: Recommended (16GB+ VRAM)
    ollama run mixtral
    ```
+
+   > **Note**: GPU acceleration significantly improves performance. NVIDIA GPUs work out-of-the-box, AMD GPUs require ROCm setup.
 
 #### b. AnythingLLM (Memory/RAG Agent)
 
 This repository includes the AnythingLLM source code in the `anything-llm/` directory.
 
-1. Navigate into the directory and create your environment file:
+1. Navigate to the project root and run the setup script to install all dependencies:
    ```bash
    cd anything-llm
-   cp .env.example .env
-   nano .env  # Set HOST, PORT, MODEL values
+   yarn setup
    ```
 
-2. Install dependencies and start the server:
+2. Configure the server environment:
    ```bash
-   cd server
-   npm install
-   HOST=127.0.0.1 PORT=9898 npm run dev
+   cp server/.env.example server/.env
+   nano server/.env  # Set STORAGE_DIR, HOST, PORT, and other values as needed
    ```
+
+3. Configure the frontend environment:
+   ```bash
+   nano frontend/.env  # Set VITE_API_BASE='/api' for production
+   ```
+
+4. Build and start the services:
+   ```bash
+   # Build frontend
+   cd frontend && yarn build
+   
+   # Copy frontend build to server
+   cp -R frontend/dist server/public
+   
+   # Prepare database
+   cd ../server && npx prisma generate --schema=./prisma/schema.prisma
+   cd server && npx prisma migrate deploy --schema=./prisma/schema.prisma
+   
+   # Start server (port 3001 by default)
+   NODE_ENV=production node index.js &
+   
+   # Start collector (in another terminal)
+   cd ../collector && NODE_ENV=production node index.js &
+   ```
+
+   > **Note**: AnythingLLM will be available at `http://localhost:3001` (not 9898 as mentioned earlier)
 
 #### c. Continue.dev (VS Code Copilot)
 
@@ -248,7 +280,7 @@ This repository includes the AnythingLLM source code in the `anything-llm/` dire
 1. Check each service:
    - Docker: `docker ps`.
    - Ollama: `ollama list`, open [http://localhost:11434](http://localhost:11434).
-   - AnythingLLM: open [http://localhost:9898](http://localhost:9898).
+   - AnythingLLM: open [http://localhost:3001](http://localhost:3001).
    - Continue.dev: open a chat in VS Code.
 
 2. Review logs for errors and resolve using the troubleshooting guide.
