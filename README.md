@@ -37,69 +37,80 @@ Deploy a secure, offline-capable, and extensible AI development environment with
 
 ### Visual Diagram
 
-```
-+-----------------------------------------------+
-|              Windows 11 Host (v23H2+)         |
-|   [User Desktop, Browser, Firewall]           |
-+---------------------+-------------------------+
-                      |
-                      v
-+-----------------------------------------------+
-|          WSL2 Virtualization Layer            |
-|         (Ubuntu 22.04 LTS - Isolated)         |
-+---------------------+-------------------------+
-                      |
-                      v
-+---------------------------------------------------------------+
-|                  Core Infrastructure (WSL2)                   |
-|                                                               |
-|   +-------------+      +---------------+     +-------------+  |
-|   |  Docker     |      |  Node.js      |     |  Python     |  |
-|   |  Compose    |      |  (nvm, npm)   |     |  (venv)     |  |
-|   +-------------+      +---------------+     +-------------+  |
-|                                                               |
-|   +-------------------+    +-------------------+              |
-|   |     Fail2ban      |    |      UFW          |              |
-|   | (Intrusion Prev.) |    | (Firewall)        |              |
-|   +-------------------+    +-------------------+              |
-+---------------------+-------------------------+----------------+
-                      |
-                      v
-+--------------------------------------------------------------------------------------+
-|                       AI Agent/Dev Layer (MCP Framework)                            |
-|                                                                                      |
-|  +----------------+   +----------------+   +--------------------+                   |
-|  | Continue.dev   |   | AnythingLLM    |   |    Ollama (LLMs)   |                   |
-|  | (VS Code,      |   | (Memory/RAG)   |   |  (Mistral, Phi-2)  |                   |
-|  |  running       |   |                |   |                    |                   |
-|  |  inside WSL)   |   +----------------+   +--------------------+                   |
-|  +----------------+           |                    |                               |
-|         |                     |                    |                               |
-|         +---------+-----------+----------+---------+                               |
-|                   |                      |                                         |
-|        [MCP Layer: Context/Agent Orchestration, API, CLI]                           |
-|                   |                      |                                         |
-+-------------------+----------------------+------------------------------------------+
-                      |
-                      v
-+--------------------------------------------------------+
-|           Observability & Self-Healing Layer            |
-|                                                        |
-|   +---------------+     +-------------+   +----------+ |
-|   |  Prometheus   |<--->| Node Export |<->| cAdvisor | |
-|   | (Collector)   |     |  (Metrics)  |   | (Docker) | |
-|   +---------------+     +-------------+   +----------+ |
-|           |                            |               |
-|           v                            v               |
-|       Grafana (Dashboards, Alerts)  Alertmanager       |
-+--------------------------------------------------------+
-                      |
-                      v
-+-------------------+
-|  End User / IT    |
-|  Dashboards &     |
-|  Notifications    |
-+-------------------+
+```mermaid
+graph TB
+    subgraph "🖥️ Windows 11 Host (v23H2+)"
+        WinHost["💻 User Desktop<br/>🌐 Browser<br/>🛡️ Firewall"]
+    end
+    
+    subgraph "🐧 WSL2 Virtualization Layer"
+        WSL["🔧 Ubuntu 22.04 LTS<br/>🔒 Isolated Environment"]
+    end
+    
+    subgraph "⚙️ Core Infrastructure (WSL2)"
+        Docker["🐳 Docker<br/>Compose"]
+        NodeJS["🟢 Node.js<br/>(nvm, npm)"]
+        Python["🐍 Python<br/>(venv)"]
+        Fail2ban["🛡️ Fail2ban<br/>(Intrusion Prevention)"]
+        UFW["🔥 UFW<br/>(Firewall)"]
+    end
+    
+    subgraph "🤖 AI Agent/Dev Layer (MCP Framework)"
+        Continue["🔄 Continue.dev<br/>(VS Code Copilot)"]
+        AnythingLLM["🧠 AnythingLLM<br/>(Memory/RAG)"]
+        Ollama["🦙 Ollama<br/>(LLMs: Mistral, Phi-2)"]
+        MCP["🔗 MCP Layer<br/>Context/Agent Orchestration"]
+    end
+    
+    subgraph "📊 Observability & Self-Healing Layer"
+        Prometheus["📈 Prometheus<br/>(Collector)"]
+        NodeExporter["📊 Node Exporter<br/>(Metrics)"]
+        cAdvisor["📦 cAdvisor<br/>(Docker)"]
+        Grafana["📋 Grafana<br/>(Dashboards, Alerts)"]
+        Alertmanager["🚨 Alertmanager"]
+    end
+    
+    subgraph "👥 End User / IT"
+        EndUser["🖥️ Dashboards &<br/>📱 Notifications"]
+    end
+    
+    WinHost --> WSL
+    WSL --> Docker
+    WSL --> NodeJS
+    WSL --> Python
+    WSL --> Fail2ban
+    WSL --> UFW
+    
+    Docker --> Continue
+    NodeJS --> AnythingLLM
+    Python --> Ollama
+    
+    Continue <--> MCP
+    AnythingLLM <--> MCP
+    Ollama <--> MCP
+    
+    MCP --> Prometheus
+    Prometheus <--> NodeExporter
+    Prometheus <--> cAdvisor
+    Prometheus --> Grafana
+    Grafana --> Alertmanager
+    
+    Alertmanager --> EndUser
+    Grafana --> EndUser
+    
+    classDef windowsStyle fill:#0078d4,stroke:#005a9e,stroke-width:3px,color:#fff
+    classDef wslStyle fill:#e95420,stroke:#c7431b,stroke-width:3px,color:#fff
+    classDef infraStyle fill:#28a745,stroke:#1e7e34,stroke-width:2px,color:#fff
+    classDef aiStyle fill:#6f42c1,stroke:#533a95,stroke-width:3px,color:#fff
+    classDef observeStyle fill:#fd7e14,stroke:#e8590c,stroke-width:2px,color:#fff
+    classDef userStyle fill:#17a2b8,stroke:#117a8b,stroke-width:2px,color:#fff
+    
+    class WinHost windowsStyle
+    class WSL wslStyle
+    class Docker,NodeJS,Python,Fail2ban,UFW infraStyle
+    class Continue,AnythingLLM,Ollama,MCP aiStyle
+    class Prometheus,NodeExporter,cAdvisor,Grafana,Alertmanager observeStyle
+    class EndUser userStyle
 ```
 
 ---
@@ -341,17 +352,53 @@ The Multi-Context Protocol (MCP) orchestrates agent interactions, automating sec
 
 ### MCP Layer Diagram
 
-```
-[User]
-  |
-  v
-[VS Code (Continue.dev)] <—> [AnythingLLM]
-        |                          |
-        v                          v
-    [Ollama (LLMs)] <———————> [MCP Orchestration Layer]
-             |                    |
-     [Secure Output/Logs/Actions] |
-                   |______________|
+```mermaid
+graph TD
+    subgraph "👤 User Layer"
+        User["🧑‍💻 Developer"]
+    end
+    
+    subgraph "💻 Development Environment"
+        VSCode["🆚 VS Code<br/>(Continue.dev)"]
+    end
+    
+    subgraph "🧠 Knowledge & Memory"
+        AnythingLLM["🧠 AnythingLLM<br/>📚 RAG Engine<br/>💾 Memory Store"]
+    end
+    
+    subgraph "🤖 AI Models"
+        Ollama["🦙 Ollama<br/>🤖 Local LLMs<br/>⚡ Inference Engine"]
+    end
+    
+    subgraph "🔗 MCP Orchestration Layer"
+        MCP["🎛️ Multi-Context Protocol<br/>🔄 Agent Coordination<br/>🛡️ Secure Data Flow<br/>📡 API Gateway"]
+    end
+    
+    subgraph "📊 Output & Actions"
+        Output["📝 Secure Output<br/>📋 Logs & Actions<br/>🔐 Audit Trail"]
+    end
+    
+    User --> VSCode
+    VSCode <--> AnythingLLM
+    VSCode --> MCP
+    AnythingLLM --> MCP
+    MCP <--> Ollama
+    MCP --> Output
+    Output --> User
+    
+    classDef userStyle fill:#20c997,stroke:#17a085,stroke-width:3px,color:#fff
+    classDef devStyle fill:#0d6efd,stroke:#0a58ca,stroke-width:3px,color:#fff
+    classDef knowledgeStyle fill:#6f42c1,stroke:#533a95,stroke-width:3px,color:#fff
+    classDef aiStyle fill:#fd7e14,stroke:#e8590c,stroke-width:3px,color:#fff
+    classDef mcpStyle fill:#dc3545,stroke:#b02a37,stroke-width:4px,color:#fff
+    classDef outputStyle fill:#198754,stroke:#146c43,stroke-width:3px,color:#fff
+    
+    class User userStyle
+    class VSCode devStyle
+    class AnythingLLM knowledgeStyle
+    class Ollama aiStyle
+    class MCP mcpStyle
+    class Output outputStyle
 ```
 
 ---
@@ -379,16 +426,77 @@ Observability and self-healing ensure your stack is “always-on,” self-monito
 
 ### System Diagram
 
-```
-[AI Dev Stack: Ollama | AnythingLLM | Continue.dev]
-        |
-  [Prometheus Exporters: Node Exporter, cAdvisor]
-        |
-    [Prometheus Collector]
-        |
-    [Grafana Dashboard]
-        |
- [User & Operator Alerts (Email/Slack)]
+```mermaid
+graph TB
+    subgraph "🤖 AI Development Stack"
+        subgraph "🦙 Ollama Services"
+            OllamaAPI["🌐 Ollama API<br/>Port: 11434"]
+            OllamaModels["🧠 LLM Models<br/>Mistral • Phi • Mixtral"]
+        end
+        
+        subgraph "🧠 AnythingLLM Services"
+            AnythingAPI["🌐 AnythingLLM API<br/>Port: 3001"]
+            AnythingRAG["📚 RAG Engine<br/>Vector Database"]
+        end
+        
+        subgraph "🆚 Continue.dev"
+            ContinueExt["🔌 VS Code Extension<br/>AI Assistant"]
+        end
+    end
+    
+    subgraph "📊 Monitoring & Metrics"
+        subgraph "📈 Exporters"
+            NodeExp["📊 Node Exporter<br/>🖥️ System Metrics<br/>Port: 9100"]
+            cAdvisor["📦 cAdvisor<br/>🐳 Container Metrics<br/>Port: 8080"]
+        end
+        
+        subgraph "🔍 Collection"
+            Prometheus["📈 Prometheus<br/>⚡ Metrics Collector<br/>Port: 9090"]
+        end
+        
+        subgraph "📋 Visualization"
+            Grafana["📊 Grafana<br/>📈 Dashboard UI<br/>Port: 3000"]
+        end
+        
+        subgraph "🚨 Alerting"
+            Alertmanager["🚨 Alertmanager<br/>📧 Notifications<br/>Port: 9093"]
+        end
+    end
+    
+    subgraph "👨‍💼 Operations Team"
+        Alerts["📱 Email/Slack Alerts<br/>🔔 Real-time Notifications"]
+        Dashboards["🖥️ Monitoring Dashboards<br/>📊 Performance Metrics"]
+    end
+    
+    %% Data Flow Connections
+    OllamaAPI --> NodeExp
+    AnythingAPI --> NodeExp
+    ContinueExt --> NodeExp
+    
+    NodeExp --> Prometheus
+    cAdvisor --> Prometheus
+    
+    Prometheus --> Grafana
+    Prometheus --> Alertmanager
+    
+    Grafana --> Dashboards
+    Alertmanager --> Alerts
+    
+    %% Service Interactions
+    ContinueExt <--> OllamaAPI
+    ContinueExt <--> AnythingAPI
+    AnythingAPI <--> OllamaAPI
+    
+    classDef aiStyle fill:#6f42c1,stroke:#533a95,stroke-width:3px,color:#fff
+    classDef monitorStyle fill:#fd7e14,stroke:#e8590c,stroke-width:2px,color:#fff
+    classDef alertStyle fill:#dc3545,stroke:#b02a37,stroke-width:3px,color:#fff
+    classDef userStyle fill:#198754,stroke:#146c43,stroke-width:2px,color:#fff
+    classDef dataStyle fill:#0dcaf0,stroke:#0aa2c0,stroke-width:2px,color:#000
+    
+    class OllamaAPI,OllamaModels,AnythingAPI,AnythingRAG,ContinueExt aiStyle
+    class NodeExp,cAdvisor,Prometheus,Grafana monitorStyle
+    class Alertmanager alertStyle
+    class Alerts,Dashboards userStyle
 ```
 
 ---
